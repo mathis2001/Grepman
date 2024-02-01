@@ -85,7 +85,7 @@ if [ "$run_php" = true ]; then
     echo -e "\n${GREEN}[*]${RESET} Checking for SQLi functions...\n"
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
 
-    grep --include=*.php -n -R "mysql->prepare\|stmt->prepare\|stmt->bind_param\|stmt->execute\|odbc_prepare\|mysql_query(\|mysql_db_query(\|pg_execuce(\|pg_query(\|pg_query_params(\|pg_prepare(\|pg_send_\|mssql_execute(\|mssql_query(\|obdc_exec(\|obdc_execute(\|odbc_do(\|odbc_prepare(\|createQueryBuilder" "$path" | tee -a SQLi.txt
+    grep --include=*.php -n -R "mysql->prepare\|stmt->prepare\|stmt->bind_param\|stmt->execute\|odbc_prepare\|mysql_query(\|mysql_db_query(\|pg_execuce(\|pg_query(\|pg_query_params(\|pg_prepare(\|pg_send_\|mssql_execute(\|mssql_query(\|obdc_exec(\|obdc_execute(\|odbc_do(\|odbc_prepare(\|createQueryBuilder" "$path" | tee -a sqli.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
     echo -e "\n${GREEN}[*]${RESET} Checking for Dynamic Code Execution functions...\n"
@@ -130,7 +130,7 @@ if [ "$run_py" = true ]; then
     echo -e "\n${GREEN}[*]${RESET} Searching for potential user inputs...\n"
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
 
-    grep --include=*.py -n -R -E 'request\.GET|request\.POST|request\.FILES|request\.COOKIES|request\.body|request\.headers|request\.form|request\.values|request\.args|request\.json|request\.cookies|request\.path|request\.url|request\.base_url|request\.full_path|request\.script_root|request\.url_root|request\.url_charset|request\.url|request\.url_encoding|request\.host|request\.host_url|request\.scheme|request\.is_secure|request\.is_ajax|request\.method|request\.scheme|request\.host|request\.path|request\.query_string|request\.remote_addr|request\.remote_user|request\.environ|request\.endpoint|request\.route|request\.url_rule|request\.view_args|request\.urlparams|request\.get|request\.set|request\.session' "$path"
+    grep --include=*.py -n -R -E 'request\.GET|request\.POST|request\.FILES|request\.COOKIES|request\.body|request\.headers|request\.form|request\.values|request\.args|request\.json|request\.cookies|request\.path|request\.url|request\.base_url|request\.full_path|request\.script_root|request\.url_root|request\.url_charset|request\.url|request\.url_encoding|request\.host|request\.host_url|request\.scheme|request\.is_secure|request\.is_ajax|request\.method|request\.scheme|request\.host|request\.path|request\.query_string|request\.remote_addr|request\.remote_user|request\.environ|request\.endpoint|request\.route|request\.url_rule|request\.view_args|request\.urlparams|request\.get|request\.set|request\.session' "$path" | tee -a inputs.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
     echo -e "\n${GREEN}[*]${RESET} Checking for XSS functions...\n"
@@ -338,7 +338,7 @@ if [ "$run_java" = true ]; then
     echo -e "\n${GREEN}[*]${RESET} Checking for XXE functions...\n"
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
  
-    grep -n -R "SAXParserFactory\|DOM4J\|DocumentBuilderFactory\|XMLInputFactory\|TransformerFactory\|javax.xml.validation.Validator\|SchemaFactory\|SAXTransformerFactory\|XMLReader\|SAXBuilder\|SAXReader\|javax.xml.bind.Unmarshaller\|XPathExpression\|DOMSource\|StAXSource" "$path" | tee -a XXE.txt
+    grep -n -R "SAXParserFactory\|DOM4J\|DocumentBuilderFactory\|XMLInputFactory\|TransformerFactory\|javax.xml.validation.Validator\|SchemaFactory\|SAXTransformerFactory\|XMLReader\|SAXBuilder\|SAXReader\|javax.xml.bind.Unmarshaller\|XPathExpression\|DOMSource\|StAXSource" "$path" | tee -a xxe.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
     echo -e "\n${GREEN}[*]${RESET} Checking for Expression Language functions...\n"
