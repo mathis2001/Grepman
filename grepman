@@ -116,7 +116,8 @@ if [ "$run_php" = true ]; then
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
 
     grep --include=*.php -n -R "htmlspecialchars\|htmlentities\|urlencode\|\bprint\b\|echo\|<?=" "$path" | tee -a XSS.txt
-    grep --include=*.html.twig -n -R "|raw"
+    grep --include=*.html.twig -n -R "|raw" | tee -a xss.txt
+    grep --include=*.blade.php -n -R -E '{!!\s*\$[^}]+!!}' | tee -a xss.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
     echo -e "\n${GREEN}[*]${RESET} Checking for PHP misconfigurations...\n"
