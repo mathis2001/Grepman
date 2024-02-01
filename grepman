@@ -44,7 +44,7 @@ while [[ $# -gt 0 ]]; do
             if [[ -z "$path" ]]; then
                 path="$1"
             else
-                echo "Invalid option: $1"
+                echo -e "${RED}[!]${RESET} Invalid option: $1"
                 usage
             fi
             ;;
