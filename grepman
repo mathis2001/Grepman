@@ -1,0 +1,405 @@
+#!/bin/bash
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RESET='\033[0m'
+
+usage() {
+    echo -e "${YELLOW}[-]${RESET} Usage: grepman /path/to/project [--php] [--py] [--ruby] [--java] [--js] [-s] [--wl <wordlist>]"
+    echo "Options:"
+    echo "    -h       Show this help message"
+    echo "    -s       Check for secrets"
+    echo "    --php    Run checks on PHP code"
+    echo "    --py     Run checks on Python code"
+    echo "    --ruby   Run checks on Ruby code"
+    echo "    --java   Run checks on Java code"
+    echo "    --js     Run checks on JavaScript code"
+    echo "    --wl     Run checks with a custom regex wordlist"
+    exit 1
+}
+
+path=""
+wordlist=""
+run_secrets=false
+run_php=false
+run_py=false
+run_ruby=false
+run_java=false
+run_js=false
+run_wl=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --php) run_php=true;;
+        --py) run_py=true;;
+        --ruby) run_ruby=true;;
+        --java) run_java=true;;
+        --js) run_js=true;;
+        --wl) run_wl=true; shift; wordlist="$1";;
+        -s) run_secrets=true;;
+        -h) usage;;
+        *)
+
+            if [[ -z "$path" ]]; then
+                path="$1"
+            else
+                echo "Invalid option: $1"
+                usage
+            fi
+            ;;
+    esac
+    shift
+done
+
+if [[ -z "$path" ]]; then
+    echo -e "${RED}[!]${RESET} Error: Path to project is missing."
+    usage
+fi
+
+if [[ "$run_wl" == true && -z "$wordlist" ]]; then
+    ech -e "${RED}[!]${RESET} Error: --wl option requires a wordlist."
+    usage
+fi
+
+if [ "$run_php" = true ]; then
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Searching for potential user inputs...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"    
+
+    grep --include=*.php -n -R -E '\$_(GET|POST|REQUEST|COOKIE|FILES|SERVER|SESSION)|\$(HTTP_GET_VARS|HTTP_POST_VARS|HTTP_COOKIE_VARS|HTTP_POST_FILES|HTTP_SERVER|HTTP_SESSION_VARS)|\b(request|input)\(\s*\$[a-zA-Z0-9_]*' "$path" | tee -a inputs.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Path traversal functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.php -n -R "fopen\|readfile\|fpassthru\|gzopen\|readgzfile\|copy\|rename\|rmdir\|mkdir\|unlink\|file_get_contents\|file_put_content\|parse_ini_file\|symlink" "$path" | tee -a path_trav.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for LFI functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.php -n -R "\binclude\b\|\brequire\b\|\bvirtual\b" "$path" | tee -a LFI.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for SQLi functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.php -n -R "mysql->prepare\|stmt->prepare\|stmt->bind_param\|stmt->execute\|odbc_prepare\|mysql_query(\|mysql_db_query(\|pg_execuce(\|pg_query(\|pg_query_params(\|pg_prepare(\|pg_send_\|mssql_execute(\|mssql_query(\|obdc_exec(\|obdc_execute(\|odbc_do(\|odbc_prepare(\|createQueryBuilder" "$path" | tee -a SQLi.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Dynamic Code Execution functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.php -n -R "eval\|call_user_func\|call_user_method\|create_function" "$path" | tee -a code_exec.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Remote Code Execution functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.php -n -R "exec(\|execve\|passthru\|popen\|proc_open\|shell_exec\|pcntl_exec\|system" "$path" | tee -a RCE.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Open redirect and SSRF functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.php -n -R "http_redirect\|\bheader\b\|HttpMessage::setResponseCode\|HttpMessage::setHeaders" "$path" | tee -a OR-SSRF.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Sockets functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.php -n -R "socket_\|fsocketopen\|pfsocketopen" "$path" | tee -a sockets.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for XSS functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.php -n -R "htmlspecialchars\|htmlentities\|urlencode\|\bprint\b\|echo\|<?=" "$path" | tee -a XSS.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for PHP misconfigurations...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep -n -R "allow_url_fopen\|allow_url_include\|display_errors\|file_uploads\|upload_tmp_dir" "$path" | tee -a misc.txt
+
+fi
+
+if [ "$run_py" = true ]; then
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Searching for potential user inputs...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.py -n -R -E 'request\.GET|request\.POST|request\.FILES|request\.COOKIES|request\.body|request\.headers|request\.form|request\.values|request\.args|request\.json|request\.cookies|request\.path|request\.url|request\.base_url|request\.full_path|request\.script_root|request\.url_root|request\.url_charset|request\.url|request\.url_encoding|request\.host|request\.host_url|request\.scheme|request\.is_secure|request\.is_ajax|request\.method|request\.scheme|request\.host|request\.path|request\.query_string|request\.remote_addr|request\.remote_user|request\.environ|request\.endpoint|request\.route|request\.url_rule|request\.view_args|request\.urlparams|request\.get|request\.set|request\.session' "$path"
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for XSS functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.py -n -R "flask.escape\|django.utils.html.escape\|bleach.clean\|django.utils.safestring.mark_safe" "$path" | tee -a xss.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for SQLi functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.py -n -R "cursor.execute" "$path" | tee -a sqli.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Insecure deserialization functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.py -n -R "pickle\|dill.\|shelve.\|pandas.read_pickle\|marshal.load\|yaml.load" "$path" | tee -a deserialization.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for LFI functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.py -n -R "urllib\|six.move.urllib" "$path" | tee -a lfi.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for XXE functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.py -n -R "xml.etree\|xml.sax\|xml.dom" "$path" | tee -a xxe.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Remote Command Execution functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.py -n -R "subprocess\|os\\.\|command" | tee -a rce.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for deprecated hashing algorithm...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.py -n -R "hashlib.md5\|hashlib.sha1\|Crypto.Hash.MD2.new\|Crypto.Hash.MD4.new\|Crypto.Hash.MD5.new\|Crypto.Hash.SHA.new\|Cryptodome.Hash.MD2.new\|Cryptodome.Hash.MD4.new\|Cryptodome.Hash.MD5.new\|Cryptodome.Hash.SHA.new\|cryptography.hazmat.primitives.hashes.MD5\|cryptography.hazmat.primitives.hashes.SHA1" "$path" | tee -a hash.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for deprecated cryptography...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.py -n -R "Crypto.Cipher.ARC2.new\|Crypto.Cipher.ARC4.new\|Crypto.Cipher.Blowfish.new\|Crypto.Cipher.DES.new\|Crypto.Cipher.XOR.new\|Cryptodome.Cipher.ARC2.new\|Cryptodome.Cipher.ARC4.new\|Cryptodome.Cipher.Blowfish.new\|Cryptodome.Cipher.DES.new\|Cryptodome.Cipher.XOR.new\|cryptography.hazmat.primitives.ciphers.algorithms.ARC4\|cryptography.hazmat.primitives.ciphers.algorithms.Blowfish\|cryptography.hazmat.primitives.ciphers.algorithms.IDEA\|cryptography.hazmat.primitives.ciphers.modes.ECB" "$path" | tee -a crypto.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for bad randomization...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.py -n -R "random.Random\|random.random\|random.randrange\|random.randint\|random.choice\|random.choices\|random.uniform\|random.triangular" "$path" | tee -a random.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Python misconfigurations...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep -n -R "DEBUG =" "$path". | tee -a misc.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Scanning for vulnerabilities...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    if [ -z "$(pip list | grep bandit)" ]; then
+        echo -e "${RED}[!]${RESET} Bandit is not installed."
+
+        while true; do
+            read -p "Do you want to install Bandit? (Y/N): " choice
+
+            case "$choice" in
+                [Yy])
+                    pip install bandit
+                    bandit -r "$path"
+                    break
+                    ;;
+                [Nn])
+                    echo -e "${RED}[!]${RESET} Bandit not installed. Exiting."
+                    exit
+                    ;;
+                *)
+                    echo -e "${RED}[!]${RESET} Invalid choice. Please enter Y or N."
+                    ;;
+            esac
+        done 
+    else
+        bandit -r "$path"
+    fi
+fi
+
+if [ "$run_ruby" = true ]; then
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Ruby On Rails misconfigurations...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep -n -R "config.force_ssl\|Rails.application.config.action_dispatch.signed_cookie_digest\|config.active_record.whitelist_attributes\|.permit!" "$path" | tee -a misc.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for XSS functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep -n -R "ActiveSupport::escape_html_entities_in_json" "$path" | tee -a xss.txt
+    grep --include=*.erb -n -R "to_json(\|raw \|html_save\|content_tag\|ERB.new\|render inline:\|render text:" "$path" | tee -a xss.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Remote Code Execution functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.rb -n -R "eval(\|system(\|exec(\|spawn(\| open(\|Process.exec(\|Process.spawn(\|IO.binread(\|IO.binwrite(\|IO.foreach(\|IO.popen(\|IO.read(\|IO.readlines(\|IO.write(\|syscall\|popen\|Open3.popen3(\|fork(\|PTY.spawn(\|constantize" "$path" | tee -a rce.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for SQli functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.rb -n -R "\\.annotate\|\\.find\|\\.create_with\|\\.distinct\|\\.eager_load\|\\.extending\|\\.extract_associated\|\\.from\|\\.group\|\\.having\|\\.includes\|\\.joins\|\\.left_outer_joins\|\\.limit\|\\.lock\|\\.none\|\\.offset\|\\.optimizer_hints\|\\.order\|\\.preload\|\\.readonly\|\\.references\|\\.reorder\|\\.reselect\|\\.regroup\|\\.reverse_order\|\\.select\|\\.where" "$path" | tee -a sqli.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for SSTI functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.erb -n -R "ERB.new" "$path" | tee -a ssti.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Insecure Deserialization functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.rb -n -R "Marshal.load" "$path" | tee -a deserialization.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Scanning for vulnerabilities...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    if [ -z "$(gem list | grep brakeman)" ]; then
+        echo -e "${RED}[!]${RESET} Brakeman is not installed."
+
+        while true; do
+            read -p "Do you want to install Brakeman? (Y/N): " choice
+
+            case "$choice" in
+                [Yy])
+                    gem install brakeman
+                    brakeman "$path"
+                    break
+                    ;;
+                [Nn])
+                    echo -e "${RED}[!]${RESET} Brakeman not installed. Exiting."
+                    exit
+                    ;;
+                *)
+                    echo -e "${RED}[!]${RESET} Invalid choice. Please enter Y or N."
+                    ;;
+            esac
+        done 
+    else
+        brakeman "$path"
+
+    fi
+fi
+
+if [ "$run_java" = true ]; then
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Searching for potential user inputs...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"    
+
+    grep --include=*.java -n -R -E 'getParameter|getParameterNames|getParameterValues|getParameterMap|getQueryString|getHeader|getHeaders|getHeaderNames|getRequestURI|getRequestURL|getCookies|getRequestedSessionId|getInputStream|getReader|getMethod|getProtocol|getServerName|getRemoteUser|getUserPrincipal|setAttribute|putValue|getAttribute|getValue|getAttributeNames|getValueNames' "$path" | tee -a inputs.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for SQli functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.java -n -R "Statement\|CallableStatement\|PreparedStatement\|executeUpdate(\|execute(\|executeQuery(\|jdbc:" "$path" | tee -a sqli.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Open redirect functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.java -n -R "sendRedirect\|setStatus\|AddHeader" "$path" | tee -a OR.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Path Traversal functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.java -n -R "filename\|getrealPath(\|getPathTranslated(" "$path" | tee -a path-trav.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for LFI functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.java -n -R "include(\|require(\|forward(\|jsp:include page=\|include file=" "$path" | tee -a lfi.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Remote Code Execution functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.java -n -R "getruntime(\|exec(" "$path" | tee -a rce.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for XSS functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep -n -R "<c " "$path" | tee -a xss.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for XXE functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+ 
+    grep -n -R "SAXParserFactory\|DOM4J\|DocumentBuilderFactory\|XMLInputFactory\|TransformerFactory\|javax.xml.validation.Validator\|SchemaFactory\|SAXTransformerFactory\|XMLReader\|SAXBuilder\|SAXReader\|javax.xml.bind.Unmarshaller\|XPathExpression\|DOMSource\|StAXSource" "$path" | tee -a XXE.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Expression Language functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+  
+    grep -n -R -E '<spr(ing)?:(message|theme|transform|eval|hasBindErrors|bind|nestedpath)[^>]+${param' "$path" | tee -a el.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Sockets functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.java -n -R "java.net.Socket" "$path" | tee -a sockets.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Java misconfigurations...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep -n -R "login-config\|security-constraint\|session-config\|error-page\|init-param" "$path" | tee -a misc.txt
+
+fi
+
+if [ "$run_js" = true ]; then
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for DOM XSS functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.js -n -R -E 'document\.location|document\.URL|document\.URLUnencoded|document\.referrer|window\.location|document\.write\(\)|document\.writeln\(\)|document\.body\.innerHtml|eval\(|window\.execScript\(|window\.setInterval\(|window\.setTimeout\(|element\.innerHTML|element.outerHTML' "$path" | tee -a jsxss.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for SSRF functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.js -n -R "XMLHttpRequest(\|fetch(" "$path" | tee -a jsSSRF.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Information Disclosure functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*js -n -R "navigator.sendBeacon(" "$path" | tee -a disclosure.txt
+
+fi
+
+if [ "$run_secrets" = true ]; then
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Common secrets...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --exclude=*.css \
+         --exclude=*.html \
+         --exclude=*.js -r -n -E '(username\s*[:=]\s*|password\s*[:=]\s*|API_KEY\s*[:=]\s*|SECRET_KEY\s*[:=]\s*|access_token\s*[:=]\s*|private_key\s*[:=]\s*|APP_SECRET\s*[:=]\s*|_ROOT_PASSWORD\s*[:=]\s*|_PASSWORD\s*[:=]\s*|_USER\s*[:=]\s*|_PASS\s*[:=]\s*|_SECRET\s*[:=]\s*|DATABASE_URL\s*[:=]\s*)' "$path" | tee -a secrets.txt
+
+ 
+fi
+
+if [ "$run_wl" = true ]; then
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Matching results with your given custom regex patterns wordlist, it can take a while...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    while read -r line
+    do
+        grep -n -R -P "$line" "$path"
+    done < output_regex.txt
+fi
