@@ -168,7 +168,7 @@ if [ "$run_py" = true ]; then
     echo -e "\n${GREEN}[*]${RESET} Checking for LFI functions...\n"
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
 
-    grep --include=*.py -n -R "\bopen(\|six.move.urllib" "$path" | tee -a lfi.txt
+    grep --include=*.py -n -R "\bopen(\|six.move.urllib\|file\.read" "$path" | tee -a lfi.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
     echo -e "\n${GREEN}[*]${RESET} Checking for XXE functions...\n"
