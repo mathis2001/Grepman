@@ -144,7 +144,7 @@ if [ "$run_py" = true ]; then
     echo -e "\n${GREEN}[*]${RESET} Checking for XSS functions...\n"
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
 
-    grep --include=*.py -n -R "flask.escape\|django.utils.html.escape\|bleach.clean\|django.utils.safestring.mark_safe" "$path" | tee -a xss.txt
+    grep --include=*.py -n -R "flask.escape\|django.utils.html.escape\|bleach.clean\|django.utils.safestring.mark_safe\|mark_safe" "$path" | tee -a xss.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
     echo -e "\n${GREEN}[*]${RESET} Checking for SQLi functions...\n"
