@@ -162,7 +162,7 @@ if [ "$run_py" = true ]; then
     echo -e "\n${GREEN}[*]${RESET} Checking for Insecure deserialization functions...\n"
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
 
-    grep --include=*.py -n -R "pickle\|dill.\|shelve.\|pandas.read_pickle\|marshal.load\|yaml.load" "$path" | tee -a deserialization.txt
+    grep --include=*.py -n -R "pickle\|dill\.\|shelve\.\|pandas\.read_pickle\|marshal\.load\|yaml\.load" "$path" | tee -a deserialization.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
     echo -e "\n${GREEN}[*]${RESET} Checking for LFI functions...\n"
