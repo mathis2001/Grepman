@@ -241,13 +241,13 @@ if [ "$run_ruby" = true ]; then
     echo -e "\n${GREEN}[*]${RESET} Checking for Ruby On Rails misconfigurations...\n"
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
 
-    grep -n -R "config.force_ssl\|Rails.application.config.action_dispatch.signed_cookie_digest\|config.active_record.whitelist_attributes\|.permit!" "$path" | tee -a misc.txt
+    grep -n -R "config.force_ssl\|Application.config.session_store\|Rails.application.config.action_dispatch.signed_cookie_digest\|config.active_record.whitelist_attributes\|.permit!" "$path" | tee -a misc.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
     echo -e "\n${GREEN}[*]${RESET} Checking for XSS functions...\n"
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
 
-    grep -n -R "ActiveSupport::escape_html_entities_in_json" "$path" | tee -a xss.txt
+    grep -n -R "escape_html_entities_in_json" "$path" | tee -a xss.txt
     grep --include=*.erb -n -R "to_json(\|raw \|html_save\|content_tag\|ERB.new\|render inline:\|render text:" "$path" | tee -a xss.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
