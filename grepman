@@ -204,7 +204,7 @@ if [ "$run_py" = true ]; then
     echo -e "\n${GREEN}[*]${RESET} Checking for Python misconfigurations...\n"
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
 
-    grep -n -R "DEBUG =\|headers[" "$path". | tee -a misc.txt
+    grep -n -R "DEBUG =\|response.headers" "$path" | tee -a misc.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
     echo -e "\n${GREEN}[*]${RESET} Searching for JWT misconfigurations...\n"
