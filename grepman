@@ -248,7 +248,7 @@ if [ "$run_ruby" = true ]; then
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
 
     grep -n -R "escape_html_entities_in_json" "$path" | tee -a xss.txt
-    grep --include=*.erb -n -R "to_json(\|raw \|html_save\|content_tag\|ERB.new\|render inline:\|render text:" "$path" | tee -a xss.txt
+    grep --include=*.erb -n -R "to_json(\|raw \|\.html_safe\|content_tag\|ERB.new\|render inline:\|render text:" "$path" | tee -a xss.txt
 
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
     echo -e "\n${GREEN}[*]${RESET} Checking for Remote Code Execution functions...\n"
