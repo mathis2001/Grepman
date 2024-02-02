@@ -382,7 +382,13 @@ if [ "$run_java" = true ]; then
     echo -e "\n${GREEN}[*]${RESET} Searching for JWT misconfigurations...\n"
     echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"    
 
-    grep --include=*.java -r -R '\bHMAC-SHA256\b\|\bHS256\b\|\bRSA\b\|\bexp\b\|\biss\b\|\baud\b\|\bjwt\.decode\|jsonwebtoken' "$path" | tee -a jwt.txt
+    grep --include=*.java -n -R '\bHMAC-SHA256\b\|\bHS256\b\|\bRSA\b\|\bexp\b\|\biss\b\|\baud\b\|\bjwt\.decode\|jsonwebtoken' "$path" | tee -a jwt.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Searching for Insecure Deserialization fonctions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"    
+
+    grep --include=*.java -n -R 'ObjectInputStream\|readObject\|writeObject' "$path" | tee -a deserialization.txt
 
 fi
 
