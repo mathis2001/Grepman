@@ -14,6 +14,7 @@ usage() {
     echo "    --py     Run checks on Python code"
     echo "    --ruby   Run checks on Ruby code"
     echo "    --java   Run checks on Java code"
+    echo "    --dotnet   Run checks on Java code"
     echo "    --js     Run checks on JavaScript code"
     echo "    --wl     Run checks with a custom regex wordlist"
     exit 1
@@ -26,6 +27,7 @@ run_php=false
 run_py=false
 run_ruby=false
 run_java=false
+run_dotnet=false
 run_js=false
 run_wl=false
 
@@ -35,6 +37,7 @@ while [[ $# -gt 0 ]]; do
         --py) run_py=true;;
         --ruby) run_ruby=true;;
         --java) run_java=true;;
+        --dotnet) run_dotnet=true;;
         --js) run_js=true;;
         --wl) run_wl=true; shift; wordlist="$1";;
         -s) run_secrets=true;;
@@ -402,6 +405,56 @@ if [ "$run_java" = true ]; then
 
     grep --include=*.java -n -R 'ObjectInputStream\|readObject\|writeObject' "$path" | tee -a deserialization.txt
 
+fi
+
+if [ "$run_dotnet" = true ]; then
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for SQLi functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.cs -n -R "ExecuteSqlCommand\|SqlCommand" "$path" | tee -a sqli.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Remote Code Execution functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.cs -n -R "ProcessStartInfo\|Process\.Start method\|Environment\.ExpandEnvironmentVariables\|Environment\.CommandLine" "$path" | tee -a rce.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for LFI functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.cs -n -R "Path\.Combine\|Path\.GetFullPath\|Directory\.CreateDirectory\|File\.WriteAllText" "$path" | tee -a lfi.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for Dynamic code execution functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.cs -n -R "System\.Reflection" "$path" | tee -a codex.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for SSRF functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.cs -n -R "WebClient\.DownloadString\|System\.Net\.Http" "$path" | tee -a ssrf.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for XXE functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.cs -n -R "XmlDocument\|XPathNavigator" "$path" | tee -a sqli.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for File Upload functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep --include=*.cs -n -R "WebClient\.UploadFile" "$path" | tee -a file-upload.txt
+
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+    echo -e "\n${GREEN}[*]${RESET} Checking for XSS functions...\n"
+    echo -e "---------------------------------------------------------\n---------------------------------------------------------\n---------------------------------------------------------"
+
+    grep -n -R "\[AllowHTML\]\|@Html\.Raw" "$path" | tee -a xss.txt
 fi
 
 if [ "$run_js" = true ]; then
