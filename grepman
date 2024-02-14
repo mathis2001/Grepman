@@ -6,7 +6,7 @@ YELLOW='\033[0;33m'
 RESET='\033[0m'
 
 usage() {
-    echo -e "${YELLOW}[-]${RESET} Usage: grepman /path/to/project [--php] [--py] [--ruby] [--java] [--js] [-s] [--wl <wordlist>]"
+    echo -e "${YELLOW}[-]${RESET} Usage: grepman /path/to/project [--php] [--py] [--ruby] [--java] [--dotnet] [--js] [-s] [--wl <wordlist>]"
     echo "Options:"
     echo "    -h       Show this help message"
     echo "    -s       Check for secrets"
